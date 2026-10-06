@@ -8,6 +8,7 @@ import sys
 
 import input as ui                                  # tên module trùng với hàm input() của Python
 import output as view
+import storage
 from domains import sort_by_gpa
 
 try:
@@ -19,7 +20,7 @@ except (AttributeError, ValueError):
 MENU = """
   1. Thêm sinh viên        4. Xếp hạng theo GPA
   2. Thêm môn học          5. Xem sinh viên
-  3. Nhập điểm             0. Thoát
+  3. Nhập điểm             0. Thoát (lưu vào students.dat)
 """
 
 
@@ -27,7 +28,10 @@ def run(stdscr):
     view.screen = view.Screen(stdscr)
     ui.screen = view.screen                          # input.py đọc qua cùng con trỏ
 
-    students, courses = [], {}                      # list[Student] và {mã môn: Course}
+    students, courses = storage.load()              # nạp dữ liệu cũ nếu có students.dat
+    if students or courses:
+        view.screen.line(f"Đã nạp {len(students)} sinh viên và "
+                         f"{len(courses)} môn học từ students.dat.\n")
     try:
         while True:
             view.screen.clear()                      # xóa để menu không đè lên bảng đã hiện
@@ -36,7 +40,7 @@ def run(stdscr):
 
             c = view.screen.ask("Chọn: ")
             if c == "0":
-                return
+                return                              # thoát -> finally sẽ lưu
             elif c == "1":
                 # Hỏi số lượng trước rồi mới nhập từng người, thay vì bắt
                 # người dùng gõ "0" để kết thúc.
@@ -61,6 +65,10 @@ def run(stdscr):
                 view.screen.line("Lựa chọn không hợp lệ, thử lại.")
     except (KeyboardInterrupt, EOFError):
         view.screen.line("\nKết thúc.")
+    finally:
+        # finally: Ctrl+C hay chọn 0 đều lưu được, không mất dữ liệu đã nhập.
+        storage.save(students, courses)
+        view.screen.line("Đã lưu vào students.dat.")
 
 
 def main():
@@ -105,7 +113,30 @@ def _test():
     s.set_mark("234", 8.53)
     assert s.marks["234"] == 8.5
 
-    print("OK: 3 module import được, làm tròn, kiểm tra dữ liệu, GPA, xếp hạng")
+    # pw5: lưu rồi nạp lại phải ra đúng dữ liệu cũ
+    import os
+    import shutil
+    import tempfile
+    saved, tmp = (storage.DIR, storage.DAT), tempfile.mkdtemp()
+    storage.DIR, storage.DAT = tmp, os.path.join(tmp, "students.dat")
+    try:
+        assert storage.load() == ([], {})            # chưa có .dat thì rỗng
+        storage.save([s, v], cs)
+        for name in storage.FILES:                  # đề yêu cầu ghi 3 file txt
+            assert os.path.exists(os.path.join(tmp, name)), name
+        s2, cs2 = storage.load()
+        assert [x.sid for x in s2] == ["1", "v"]
+        assert [(x.name, x.dob) for x in s2] == [(s.name, s.dob), ("v", "1/1/2000")]
+        assert {k: (c.name, c.credits) for k, c in cs2.items()} == \
+               {k: (c.name, c.credits) for k, c in cs.items()}
+        assert s2[0].marks == s.marks                # điểm giữ nguyên qua .dat
+        assert abs(s2[0].gpa(cs2) - s.gpa(cs)) < 1e-9
+    finally:
+        storage.DIR, storage.DAT = saved             # trở lại đường dẫn thật
+        shutil.rmtree(tmp, ignore_errors=True)       # dọn file test vừa sinh
+
+    print("OK: 3 module import được, làm tròn, kiểm tra dữ liệu, GPA, xếp hạng, "
+          "lưu/nạp students.dat")
 
 
 if __name__ == "__main__":
