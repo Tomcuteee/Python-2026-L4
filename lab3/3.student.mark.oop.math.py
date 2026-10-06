@@ -1,9 +1,4 @@
-# BÀI 3 - QUẢN LÝ ĐIỂM SINH VIÊN
-# Practical work 3 (slide 18/19): lấy bài 2 rồi thêm 4 thứ
-#   - math.floor()  : làm tròn xuống 1 chữ số thập phân ngay khi nhập điểm
-#   - numpy.array() : GPA có trọng số = tổng(tín chỉ × điểm) / tổng(tín chỉ)
-#   - sắp xếp        : danh sách sinh viên theo GPA giảm dần
-#   - curses         : giao diện tiêu đề + menu, xóa sạch màn hình mỗi vòng lặp
+# BÀI 3 - quản lý điểm sinh viên: math.floor, numpy, sắp xếp, curses.
 # Chạy:  python "3.student.mark.oop.math.py" [--test]
 
 import math
@@ -23,20 +18,15 @@ except (AttributeError, ValueError):
     pass
 
 
-# ==================================================================
-# KIỂM TRA DỮ LIỆU NGƯỜI DÙNG NHẬP
-# ==================================================================
-
 def floor1(x):
-    # Làm tròn xuống còn 1 chữ số thập phân: 8.53 -> 8.5, 7.29 -> 7.2.
-    # Cộng 1e-9 trước khi floor để bù lỗi số thực: 7.3*10 ra 72.99999999999999,
-    # không có 1e-9 thì floor ra 72, chia 10 ra 7.2 — sai.
+    # 8.53 -> 8.5, 7.29 -> 7.2. Cộng 1e-9 để bù lỗi số thực: 7.3*10 ra
+    # 72.99999999999999, không có 1e-9 thì floor ra 72 -> 7.2, sai.
     return math.floor(x * 10 + 1e-9) / 10
 
 
 def is_number(s):
     # isdecimal() chứ không isdigit(): isdigit() nhận cả ký tự Unicode
-    # kiểu "2" mà int() lại báo lỗi.
+    # mà int() báo lỗi.
     return s.isdecimal()
 
 
@@ -54,11 +44,10 @@ def is_mark(s):
 
 
 def is_dob(s):
-    # Ngày sinh d/m/y và có thật. date() tự báo lỗi ngày không tồn tại
-    # trong tháng, không cần tự kiểm tra từng tháng.
+    # Ngày sinh d/m/y và có thật. date() tự báo lỗi ngày không tồn tại.
     try:
-        day, month, year = (int(p) for p in s.split("/"))
-        date(year, month, day)
+        d, m, y = (int(p) for p in s.split("/"))
+        date(y, m, d)
         return True
     except ValueError:
         return False
@@ -66,8 +55,6 @@ def is_dob(s):
 
 def ask(prompt, check=None, error="Giá trị không hợp lệ, thử lại."):
     # Hỏi đến khi dữ liệu đúng. check=None nghĩa là chỉ cần khác rỗng.
-    # Đọc qua `screen` chứ không gọi input() trực tiếp: khi curses đang bật,
-    # input() in câu hỏi ra ngoài màn hình curses rồi bị curses ghi đè mất.
     while True:
         s = screen.ask(prompt)
         if not s:
@@ -78,71 +65,54 @@ def ask(prompt, check=None, error="Giá trị không hợp lệ, thử lại."):
             screen.line(error)
 
 
-# ==================================================================
-# LỚP ĐỐI TƯỢNG
-# ==================================================================
-
 class Course:
-    """Môn học. `credits` là trọng số dùng khi tính GPA."""
-
     def __init__(self, cid, name, credits):
-        self.cid = cid
+        self.cid = cid          # mã môn, dùng làm khoá tra cứu điểm
         self.name = name
-        self.credits = credits
+        self.credits = credits  # số tín chỉ, là trọng số khi tính GPA
 
 
 class Student:
-    # Sinh viên. `marks` = {mã môn: điểm}, ví dụ {"234": 8.5}, thang 0-10.
-
     def __init__(self, sid, name, dob):
         self.sid = sid
         self.name = name
         self.dob = dob
-        self.marks = {}                 # rỗng lúc mới tạo, điền dần khi nhập điểm
+        self.marks = {}                 # {mã môn: điểm} thang 0-10, ví dụ {"234": 8.5}
 
     def set_mark(self, cid, mark):
-        # Làm tròn ngay lúc ghi để mọi đường ghi điểm đều qua cùng quy tắc
-        self.marks[cid] = floor1(mark)
+        self.marks[cid] = floor1(mark)  # làm tròn ngay lúc ghi
 
     def gpa(self, courses):
         # GPA = tổng(tín chỉ × điểm) / tổng(tín chỉ)
         # ví dụ 3tc@8.5 + 4tc@9.7 -> (3*8.5 + 4*9.7)/7 = 9.19
-        # Môn chưa nhập điểm không tính, vì `marks` chỉ chứa môn đã có điểm.
         ids = list(self.marks)
         credits = np.array([courses[c].credits for c in ids], dtype=float)
         marks = np.array([self.marks[c] for c in ids], dtype=float)
         if credits.size == 0 or credits.sum() == 0:
-            return 0.0                     # chưa có điểm: trả 0 để khỏi chia 0
-        # `credits * marks` nhân từng phần tử theo đúng vị trí:
-        # tín chỉ môn 234 × điểm môn 234, tín chỉ môn 235 × điểm môn 235.
+            return 0.0
         return float(np.sum(credits * marks) / np.sum(credits))
 
 
 def sort_by_gpa(students, courses):
-    """Xếp GPA giảm dần. Trả về danh sách mới, danh sách cũ không đổi."""
+    # Xếp GPA giảm dần, trả về danh sách mới.
     return sorted(students, key=lambda s: s.gpa(courses), reverse=True)
 
 
-# ==================================================================
-# GIAO DIỆN CURSES
-# ==================================================================
-
 def _cursor(visible):
-    # Nhiều terminal không hỗ trợ curs_set() và báo lỗi, nhưng việc này không
-    # quan trọng nên bỏ qua lỗi.
+    if curses is None:
+        return
     try:
         curses.curs_set(1 if visible else 0)
     except curses.error:
-        pass
+        pass                            # nhiều terminal không hỗ trợ curs_set()
 
 
 class Screen:
-    # Bọc curses. Truyền None thì mọi lệnh vẽ in ra màn hình bình thường,
-    # nên chương trình vẫn chạy được trên máy không cài curses.
+    # win=None nghĩa là in ra màn hình bình thường.
 
     def __init__(self, win):
         self.w = win
-        self.row = 1                      # dòng 0 dành cho tiêu đề
+        self.row = 1                   # dòng 0 dành cho tiêu đề
 
     def clear(self):
         self.row = 1
@@ -150,18 +120,17 @@ class Screen:
             self.w.erase()
 
     def line(self, text=""):
-        # In nội dung xuống dòng kế tiếp. Chuỗi có \n thì in nhiều dòng.
-        # Cần bộ đếm `row` vì curses KHÔNG tự cuộn màn hình: cứ in vào dòng
-        # cuối thì dòng mới sẽ đè dòng cũ.
+        # curses không tự cuộn màn hình nên phải tự tăng `row`;
+        # dòng cuối (h-1) dành cho câu hỏi nhập.
         if not self.w:
             print(text)
             return
         h, w = self.w.getmaxyx()
         for part in str(text).split("\n"):
-            if self.row >= h - 1:         # dòng cuối dành cho câu hỏi nhập
+            if self.row >= h - 1:
                 break
-            self.w.addstr(self.row, 0, part[:w - 1])    # cắt w-1: chạm cột cuối sẽ vượt biên
-            self.w.clrtoeol()                            # xóa phần cũ còn sót của dòng
+            self.w.addstr(self.row, 0, part[:w - 1])   # cắt w-1: chạm cột cuối sẽ vượt biên
+            self.w.clrtoeol()                          # xóa phần còn sót của dòng
             self.row += 1
         self.w.refresh()
 
@@ -173,9 +142,7 @@ class Screen:
         self.w.addstr(0, 0, text.center(w - 1), curses.A_BOLD)
 
     def ask(self, prompt):
-        # Câu hỏi ở dòng cuối, trả về chuỗi đã bỏ khoảng trắng thừa.
-        # Dùng window.getstr() chứ không curses.instr(): bản windows-curses
-        # không có instr(). getstr() chỉ đọc được khi echo đang bật.
+        # getstr() chứ không curses.instr(): windows-curses không có instr()
         if not self.w:
             return input(prompt)
         h, w = self.w.getmaxyx()
@@ -186,19 +153,18 @@ class Screen:
         curses.echo()
         try:
             return self.w.getstr(h - 1, 0, w - 2).decode("utf-8", "ignore").strip()
-        finally:                           # finally để Ctrl+C cũng trả
-            curses.noecho()                # con trỏ và echo về đúng trạng thái
+        finally:
+            curses.noecho()             # finally để Ctrl+C cũng trả
             _cursor(0)
 
 
-screen = Screen(None)      # main() thay bằng màn hình curses thật
+screen = Screen(None)                  # run() thay bằng màn hình curses thật
 
 
 def table(headers, rows):
-    """Dựng bảng các cột đều nhau, trả về danh sách dòng đã căn."""
+    # Bảng các cột đều nhau. Rộng cột = max(tên cột, giá trị dài nhất).
     if not rows:
         return ["(chưa có dữ liệu)"]
-    # Độ rộng cột = max(tên cột, giá trị dài nhất trong cột đó).
     w = [max([len(str(h))] + [len(str(r[i])) for r in rows])
          for i, h in enumerate(headers)]
     return (["  ".join(str(h).ljust(x) for h, x in zip(headers, w)),
@@ -207,7 +173,7 @@ def table(headers, rows):
 
 
 def add_student(students):
-    """Mã SV trùng bị chặn: mã là khoá tra cứu điểm, trùng thì ghi đè."""
+    # Chặn mã trùng: mã là khoá tra cứu điểm, trùng thì ghi đè mất.
     sid = ask("Mã SV: (ví dụ 203120) ",
               lambda s: is_number(s) and s not in {x.sid for x in students},
               "Mã SV phải là chữ số và không được trùng.")
@@ -219,7 +185,6 @@ def add_student(students):
 
 
 def add_course(courses):
-    """Mã môn trùng bị chặn: mã môn là khoá tra cứu số tín chỉ."""
     cid = ask("Mã môn: (ví dụ 234) ",
               lambda s: is_number(s) and s not in courses,
               "Mã môn phải là chữ số và không được trùng.")
@@ -232,7 +197,6 @@ def add_course(courses):
 
 
 def enter_marks(students, courses):
-    """Chọn một môn rồi nhập điểm cho mọi sinh viên. Điểm được floor1 ngay."""
     cid = ask("Nhập điểm môn nào? (mã môn) ",
               lambda s: s in courses, "Môn học không tồn tại.")
     for s in students:
@@ -244,7 +208,6 @@ def enter_marks(students, courses):
 
 
 def show_gpa(students, courses):
-    """In sinh viên xếp hạng theo GPA giảm dần."""
     screen.line()
     for r in table(["Mã SV", "Họ tên", "GPA"],
                    [[s.sid, s.name, f"{s.gpa(courses):.2f}"]
@@ -252,25 +215,23 @@ def show_gpa(students, courses):
         screen.line(r)
 
 
-# ==================================================================
-# CHƯƠNG TRÌNH CHÍNH
-# ==================================================================
-
 MENU = """
   1. Thêm sinh viên        4. Xếp hạng theo GPA
   2. Thêm môn học          5. Xem sinh viên
   3. Nhập điểm             0. Thoát
 """
 
+EMPTY = "Cần có sinh viên và môn học trước."
+
 
 def run(stdscr):
     global screen
     screen = Screen(stdscr)
 
-    students, courses = [], {}            # list[Student] và {mã môn: Course}
+    students, courses = [], {}                     # list[Student] và {mã môn: Course}
     try:
         while True:
-            screen.clear()                # xóa để menu không đè lên bảng đã hiện
+            screen.clear()
             screen.title("QUẢN LÝ ĐIỂM SINH VIÊN")
             screen.line(MENU)
 
@@ -281,11 +242,16 @@ def run(stdscr):
                 add_student(students)
             elif c == "2":
                 add_course(courses)
-            elif c == "3" or c == "4":
+            elif c == "3":
                 if students and courses:
-                    (enter_marks if c == "3" else show_gpa)(students, courses)
+                    enter_marks(students, courses)
                 else:
-                    screen.line("Cần có sinh viên và môn học trước.")
+                    screen.line(EMPTY)
+            elif c == "4":
+                if students and courses:
+                    show_gpa(students, courses)
+                else:
+                    screen.line(EMPTY)
             elif c == "5":
                 for r in table(["Mã SV", "Họ tên", "Ngày sinh"],
                                [[s.sid, s.name, s.dob] for s in students]):
@@ -300,43 +266,36 @@ def main():
     if curses is None or not sys.stdout.isatty():
         run(None)                           # không có terminal thì in thường
     else:
-        # wrapper tự gọi initscr + noecho + cbreak, và endwin() khi thoát.
-        curses.wrapper(run)
+        curses.wrapper(run)                # tự gọi initscr và endwin()
 
-
-# ==================================================================
-# TỰ KIỂM TRA
-# ==================================================================
 
 def _test():
     # Chạy: python "3.student.mark.oop.math.py" --test
-    # Làm tròn xuống 1 chữ số, kể cả lỗi số thực 7.3*10 = 72.999...
     assert [floor1(x) for x in (8.53, 7.29, 7.3, 9.0, 0.04)] == [8.5, 7.2, 7.3, 9.0, 0.0]
     assert is_mark("8.53") and not is_mark("11") and not is_mark("tom")
-    assert is_dob("24/1/2002") and not is_dob("30/2/2002")   # tháng 2 không có ngày 30
+    assert is_dob("24/1/2002") and not is_dob("30/2/2002")
 
     cs = {"234": Course("234", "Đại số tuyến tính", 3),
           "235": Course("235", "Python", 4)}
 
     s = Student("1", "tom", "24/1/2002")
-    assert s.gpa(cs) == 0.0                 # chưa có điểm -> 0, không chia cho 0
+    assert s.gpa(cs) == 0.0                 # chưa có điểm -> 0
     s.set_mark("234", 9.0)
     s.set_mark("235", 8.0)
     assert abs(s.gpa(cs) - 59 / 7) < 1e-9  # (3*9 + 4*8) / 7
 
-    # Hai SV có tổng điểm thường bằng nhau nhưng trọng số khác nên GPA khác:
+    # Tổng điểm bằng nhau nhưng trọng số khác nên GPA khác:
     #   v: (3*9  + 4*10) / 7 = 9.57        w: (3*10 + 4*9 ) / 7 = 9.43
     v, w = Student("v", "v", "1/1/2000"), Student("w", "w", "1/1/2000")
     v.set_mark("234", 9.0), v.set_mark("235", 10.0)
     w.set_mark("234", 10.0), w.set_mark("235", 9.0)
     assert sort_by_gpa([w, v], cs) == [v, w]
 
-    # Nhập 8.53 phải lưu thành 8.5
     s.marks.clear()
     s.set_mark("234", 8.53)
-    assert s.marks["234"] == 8.5
+    assert s.marks["234"] == 8.5            # nhập 8.53 -> lưu 8.5
 
-    print("OK: làm tròn, kiểm tra dữ liệu, GPA có trọng số, xếp hạng")
+    print("OK: làm tròn, kiểm tra dữ liệu, GPA, xếp hạng")
 
 
 if __name__ == "__main__":

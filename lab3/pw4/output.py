@@ -1,8 +1,11 @@
+# output.py - vẽ giao diện: bọc curses, có curses thì vẽ, không thì in thường.
+
 from domains import sort_by_gpa
+
 try:
     import curses
 except ImportError:
-    curses = None                     # không có curses thì chạy bản in thường
+    curses = None
 
 
 def _cursor(visible):
@@ -11,14 +14,15 @@ def _cursor(visible):
     try:
         curses.curs_set(1 if visible else 0)
     except curses.error:
-        pass
+        pass                            # nhiều terminal không hỗ trợ curs_set()
 
 
 class Screen:
+    # win=None nghĩa là in ra màn hình bình thường.
 
     def __init__(self, win):
         self.w = win
-        self.row = 1                      # dòng 0 dành cho tiêu đề
+        self.row = 1                   # dòng 0 dành cho tiêu đề
 
     def clear(self):
         self.row = 1
@@ -26,17 +30,17 @@ class Screen:
             self.w.erase()
 
     def line(self, text=""):
-        # curses KHÔNG tự cuộn màn hình nên phải tự tăng `row`, và dòng
-        # cuối (h-1) dành cho câu hỏi nhập.
+        # curses không tự cuộn màn hình nên phải tự tăng `row`;
+        # dòng cuối (h-1) dành cho câu hỏi nhập.
         if not self.w:
             print(text)
             return
         h, w = self.w.getmaxyx()
         for part in str(text).split("\n"):
-            if self.row >= h - 1:         # dòng cuối dành cho câu hỏi nhập
+            if self.row >= h - 1:
                 break
-            self.w.addstr(self.row, 0, part[:w - 1])    # cắt w-1: chạm cột cuối sẽ vượt biên
-            self.w.clrtoeol()                            # xóa phần còn sót của dòng
+            self.w.addstr(self.row, 0, part[:w - 1])   # cắt w-1: chạm cột cuối sẽ vượt biên
+            self.w.clrtoeol()                          # xóa phần còn sót của dòng
             self.row += 1
         self.w.refresh()
 
@@ -48,7 +52,7 @@ class Screen:
         self.w.addstr(0, 0, text.center(w - 1), curses.A_BOLD)
 
     def ask(self, prompt):
-        # getstr() chứ không phải curses.instr(): windows-curses không có instr()
+  
         if not self.w:
             return input(prompt)
         h, w = self.w.getmaxyx()
@@ -59,20 +63,18 @@ class Screen:
         curses.echo()
         try:
             return self.w.getstr(h - 1, 0, w - 2).decode("utf-8", "ignore").strip()
-        finally:                           # finally để Ctrl+C cũng trả
-            curses.noecho()                # con trỏ và echo về đúng trạng thái
+        finally:
+            curses.noecho()             # finally để Ctrl+C cũng trả
             _cursor(0)
 
 
-# Màn hình toàn cục: main.py thay bằng màn hình curses thật khi có terminal.
-screen = Screen(None)
+screen = Screen(None)                  # main.py thay bằng màn hình curses thật
 
 
 def table(headers, rows):
-    """Dựng bảng các cột đều nhau, trả về danh sách dòng đã căn."""
+    # Bảng các cột đều nhau. Rộng cột = max(tên cột, giá trị dài nhất).
     if not rows:
         return ["(chưa có dữ liệu)"]
-    # Độ rộng cột = max(tên cột, giá trị dài nhất trong cột đó).
     w = [max([len(str(h))] + [len(str(r[i])) for r in rows])
          for i, h in enumerate(headers)]
     return (["  ".join(str(h).ljust(x) for h, x in zip(headers, w)),
@@ -81,14 +83,12 @@ def table(headers, rows):
 
 
 def show_students(students):
-    """In danh sách sinh viên kèm ngày sinh."""
     for r in table(["Mã SV", "Họ tên", "Ngày sinh"],
                    [[s.sid, s.name, s.dob] for s in students]):
         screen.line(r)
 
 
 def show_gpa(students, courses):
-    """In sinh viên xếp hạng theo GPA giảm dần."""
     screen.line()
     for r in table(["Mã SV", "Họ tên", "GPA"],
                    [[s.sid, s.name, f"{s.gpa(courses):.2f}"]
@@ -97,7 +97,6 @@ def show_gpa(students, courses):
 
 
 def show_marks(students, cid):
-    """In điểm một môn vừa nhập xong."""
     for r in table(["Mã SV", "Họ tên", "Điểm"],
                    [[s.sid, s.name, s.marks[cid]] for s in students]):
         screen.line(r)

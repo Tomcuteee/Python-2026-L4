@@ -1,5 +1,4 @@
-# Quy tắc làm tròn điểm — tách riêng vì mọi đường ghi điểm đều phải qua
-# cùng một hàm này.
+# Quy tắc làm tròn điểm — tách riêng vì mọi đường ghi điểm đều qua hàm này.
 
 import math
 
