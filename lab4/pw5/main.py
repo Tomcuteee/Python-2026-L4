@@ -1,9 +1,9 @@
-# main.py - vòng lặp menu, nối input.py (nhập) với output.py (hiển thị).
+# main.py - vòng lặp menu, gọi input.py để nhập và output.py để in.
 # Chạy:  python main.py [--test]
 
 import sys
 
-import input as ui                                  # module trùng tên hàm input() của Python
+import input as ui                                  # đặt tên khác input, tên module trùng hàm input()
 import output as view
 import storage
 from domains import sort_by_gpa
@@ -25,7 +25,7 @@ EMPTY = "Cần có sinh viên và môn học trước."
 
 def run(stdscr):
     view.screen = view.Screen(stdscr)
-    ui.screen = view.screen                        # input.py đọc qua cùng con trỏ
+    ui.screen = view.screen                        # input.py dùng chung màn hình
 
     students, courses = storage.load()
     if students or courses:
@@ -87,10 +87,10 @@ def _test():
           "235": Course("235", "Python", 4)}
 
     s = Student("1", "tom", "24/1/2002")
-    assert s.gpa(cs) == 0.0                         # chưa có điểm -> 0
+    assert s.gpa(cs) == 0.0
     s.set_mark("234", 9.0)
     s.set_mark("235", 8.0)
-    assert abs(s.gpa(cs) - 59 / 7) < 1e-9          # (3*9 + 4*8) / 7
+    assert abs(s.gpa(cs) - 59 / 7) < 1e-9
 
     # Tổng điểm bằng nhau nhưng trọng số khác nên GPA khác:
     #   v: (3*9  + 4*10) / 7 = 9.57        w: (3*10 + 4*9 ) / 7 = 9.43
@@ -101,13 +101,13 @@ def _test():
 
     s.marks.clear()
     s.set_mark("234", 8.53)
-    assert s.marks["234"] == 8.5                    # nhập 8.53 -> lưu 8.5
+    assert s.marks["234"] == 8.5
 
-    # pw5: lưu rồi nạp lại phải ra đúng dữ liệu cũ
+    # Lưu rồi nạp lại phải ra đúng dữ liệu cũ
     saved, tmp = (storage.DIR, storage.DAT), tempfile.mkdtemp()
     storage.DIR, storage.DAT = tmp, os.path.join(tmp, "students.dat")
     try:
-        assert storage.load() == ([], {})            # chưa có .dat thì rỗng
+        assert storage.load() == ([], {})          # chưa có .dat thì rỗng
         storage.save([s, v], cs)
         for name in storage.FILES:
             assert os.path.exists(os.path.join(tmp, name)), name

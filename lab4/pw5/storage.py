@@ -1,5 +1,5 @@
-# storage.py - ghi 3 file txt rồi nén vào students.dat, và nạp lại khi chạy.
-# Đường dẫn tuyệt đối theo thư mục chứa file này để chạy từ đâu cũng ghi đúng chỗ.
+# Ghi 3 file txt, nén vào students.dat, và nạp lại khi chạy.
+# Đường dẫn theo thư mục chứa file này để chạy từ đâu cũng ghi đúng chỗ.
 
 import os
 import zipfile
@@ -11,8 +11,10 @@ FILES = ("students.txt", "courses.txt", "marks.txt")
 DAT = os.path.join(DIR, "students.dat")
 
 
+# --- ghi ---
+
 def save(students, courses):
-    # ponytail: tên chứa dấu phẩy sẽ vỡ dòng. Dùng repr/json khi cần nhập tên lạ.
+    # ponytail: tên chứa dấu phẩy sẽ vỡ dòng. Dùng repr/json khi nhập tên lạ.
     with open(os.path.join(DIR, "students.txt"), "w", encoding="utf-8") as f:
         for s in students:
             f.write(f"{s.sid},{s.name},{s.dob}\n")
@@ -29,14 +31,17 @@ def save(students, courses):
             z.write(os.path.join(DIR, name), name)
 
 
+# --- đọc ---
+
+def rows(z, name):
+    # Các dòng trong students.dat, bỏ dòng trống
+    return [ln for ln in z.read(name).decode("utf-8").splitlines() if ln.strip()]
+
+
 def load():
     # Trả về (students, courses). Chưa có students.dat thì trả về rỗng.
     if not os.path.exists(DAT):
         return [], {}
-
-    def rows(z, name):
-        # Bỏ dòng trống phòng khi file kết thúc bằng dòng rỗng.
-        return [ln for ln in z.read(name).decode("utf-8").splitlines() if ln.strip()]
 
     students, courses = [], {}
     with zipfile.ZipFile(DAT) as z:
@@ -50,6 +55,6 @@ def load():
         by_sid = {s.sid: s for s in students}
         for ln in rows(z, "marks.txt"):
             sid, cid, m = ln.split(",")
-            if sid in by_sid:                        # SV không có trong students.txt thì bỏ
+            if sid in by_sid:                    # SV không có trong students.txt thì bỏ
                 by_sid[sid].set_mark(cid, float(m))
     return students, courses

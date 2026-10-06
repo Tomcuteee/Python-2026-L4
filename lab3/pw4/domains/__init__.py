@@ -1,5 +1,5 @@
-# Gốc package `domains`: gom lớp dữ liệu để gói khác chỉ cần
-# from domains import Course, Student, sort_by_gpa
+# Gom lớp dữ liệu để ngoài package chỉ cần:
+# from domains import Course, Student, floor1, sort_by_gpa
 
 from .course import Course
 from .mark import floor1

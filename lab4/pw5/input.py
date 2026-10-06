@@ -1,25 +1,24 @@
-# input.py - kiểm tra dữ liệu và các hàm hỏi để nhập SV / môn / điểm.
+# Kiểm tra dữ liệu và các hàm nhập sinh viên / môn học / điểm.
 
 from datetime import date
 
 from domains import Course, Student
 
-screen = None                                      # main.py gán vào
+screen = None                          # main.py gán vào
 
+
+# --- kiểm tra dữ liệu ---
 
 def is_number(s):
-    # isdecimal() chứ không isdigit(): isdigit() nhận cả ký tự Unicode
-    # mà int() báo lỗi.
     return s.isdecimal()
 
 
 def is_name(s):
-    # Có chữ cái và không phải toàn số. "tom" -> True, "2026" -> False
     return not s.isdecimal() and any(c.isalpha() for c in s)
 
 
 def is_mark(s):
-    # Điểm trong khoảng 0-10. "-5", "11", "tom" -> False
+    # Điểm trong khoảng 0-10
     try:
         return 0 <= float(s) <= 10
     except ValueError:
@@ -27,7 +26,7 @@ def is_mark(s):
 
 
 def is_dob(s):
-    # Ngày sinh d/m/y và có thật. date() tự báo lỗi ngày không tồn tại.
+    # Ngày sinh d/m/y, ví dụ 24/1/2002
     try:
         d, m, y = (int(p) for p in s.split("/"))
         date(y, m, d)
@@ -37,7 +36,7 @@ def is_dob(s):
 
 
 def ask(prompt, check=None, error="Giá trị không hợp lệ, thử lại."):
-    # Hỏi đến khi dữ liệu đúng. check=None nghĩa là chỉ cần khác rỗng.
+    # Hỏi đến khi dữ liệu đúng, rồi trả về
     while True:
         s = screen.ask(prompt)
         if not s:
@@ -49,11 +48,13 @@ def ask(prompt, check=None, error="Giá trị không hợp lệ, thử lại."):
 
 
 def ask_count(prompt, max_n=100):
-    # Chặn 0 để khỏi lặp vô hạn ở `for i in range(n)` sau đó.
+    # Hỏi số lượng, chặn giá trị 0
     return int(ask(f"{prompt} (1-{max_n}): ",
                    lambda s: s.isdecimal() and 1 <= int(s) <= max_n,
                    f"Nhập số nguyên từ 1 đến {max_n}."))
 
+
+# --- nhập liệu ---
 
 def add_students(students, n):
     for _ in range(n):
@@ -61,7 +62,6 @@ def add_students(students, n):
 
 
 def add_student(students):
-    # Chặn mã trùng: mã là khoá tra cứu điểm, trùng thì ghi đè mất.
     sid = ask("Mã SV: (ví dụ 203120) ",
               lambda s: is_number(s) and s not in {x.sid for x in students},
               "Mã SV phải là chữ số và không được trùng.")
@@ -85,7 +85,7 @@ def add_course(courses):
 
 
 def enter_marks(students, courses):
-    # Chọn một môn rồi nhập điểm cho mọi sinh viên. Điểm được làm tròn ngay.
+    # Nhập điểm của một môn cho mọi sinh viên, trả về mã môn vừa nhập
     cid = ask("Nhập điểm môn nào? (mã môn) ",
               lambda s: s in courses, "Môn học không tồn tại.")
     for s in students:

@@ -2,7 +2,8 @@
 
 
 class Course:
+    # Mã môn, tên môn, số tín chỉ
     def __init__(self, cid, name, credits):
-        self.cid = cid          # mã môn, dùng làm khoá tra cứu điểm
+        self.cid = cid
         self.name = name
-        self.credits = credits  # số tín chỉ, là trọng số khi tính GPA
+        self.credits = credits

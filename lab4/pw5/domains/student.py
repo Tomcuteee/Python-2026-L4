@@ -1,4 +1,4 @@
-# Lớp Sinh viên + GPA có trọng số.
+# Lớp Sinh viên và hàm xếp hạng.
 
 import numpy as np
 
@@ -6,18 +6,18 @@ from .mark import floor1
 
 
 class Student:
+    # Mã SV, họ tên, ngày sinh, điểm theo từng môn
     def __init__(self, sid, name, dob):
         self.sid = sid
         self.name = name
         self.dob = dob
-        self.marks = {}                 # {mã môn: điểm} thang 0-10, ví dụ {"234": 8.5}
+        self.marks = {}                 # {mã môn: điểm}, ví dụ {"234": 8.5}
 
     def set_mark(self, cid, mark):
-        self.marks[cid] = floor1(mark)  # làm tròn ngay lúc ghi
+        self.marks[cid] = floor1(mark)
 
     def gpa(self, courses):
-        # GPA = tổng(tín chỉ × điểm) / tổng(tín chỉ)
-        # ví dụ 3tc@8.5 + 4tc@9.7 -> (3*8.5 + 4*9.7)/7 = 9.19
+        # Điểm trung bình có trọng số theo số tín chỉ
         ids = list(self.marks)
         credits = np.array([courses[c].credits for c in ids], dtype=float)
         marks = np.array([self.marks[c] for c in ids], dtype=float)
@@ -27,5 +27,5 @@ class Student:
 
 
 def sort_by_gpa(students, courses):
-    # Xếp GPA giảm dần, trả về danh sách mới.
+    # Xếp GPA giảm dần
     return sorted(students, key=lambda s: s.gpa(courses), reverse=True)
